@@ -1,0 +1,12 @@
+Package: DataComputing
+Type: Package
+Title: Package with data and examples for the Data Computing book
+Version: 0.8
+Date: 2015-07-06
+Author: Daniel Kaplan
+Maintainer: Daniel Kaplan <kaplan@macalester.edu>
+Description: Contains data and support software for the Data Computing book.  Automatically loads other essential packages for the book.
+Depends: R (>= 3.1)
+Imports: dplyr, ggplot2
+License: GPL-3
+LazyData: TRUE
