@@ -1,19 +1,18 @@
-\name{NHANES}
-\alias{NHANES}
+\name{NCHS}
+\alias{NCHS}
 \docType{data}
 \title{
-Older NHANES data: 1999-2004
+Health Statistics Data 1999-2004
 }
 \description{
-These are the data used originally in Data Computing and for the mosaic Modeling book.  They have since been supplanted on CRAN with a new NHANES which has more modern data.
+These are survey data collected by the US National Center for Health Statistics (NCHS).  Each year, approximately 5,000 individuals are interviewed in their homes. The data cover 1999-2004.
 
-These data were collected as part of the NHANES 1999-2004 study.
+Note that the \code{NHANES} package provides data from 2009-2012, including more health, life-style, and socio-economic variables.
 }
-\usage{data("NHANES")}
+\usage{data("NCHS")}
 
-\format{A data frame with 31126 observations on the following 32 variables.
+\format{A data frame with 31126 observations on the following 31 variables.
 \itemize{
-\item{\code{seqn} matching code for NHANES mortality data}
 \item{\code{sex} \code{"male"} or \code{"female"}}
 \item{\code{age} in years}
 \item{\code{pregnant} \code{"yes"} or \code{"no"}}
@@ -51,12 +50,12 @@ Other Hispanic, Non-Hispanic White, Non-Hispanic Black, or Other/Multi
 \item{\code{stratum} sampling stratum}
 }}
 \source{
-These data were assempled from NHANES 1999-2004 sources by Dr. Nir
+These data were assempled from NCHS/NHANES 1999-2004 sources by Dr. Nir
 Krakauer at City College of New York.
 }
+\seealso{The \code{NHANES} package available through CRAN.}
 
 \examples{
-data(NHANES)
-## maybe str(NHANES) ; plot(NHANES) ...
+names(NCHS)
 }
 \keyword{datasets}
