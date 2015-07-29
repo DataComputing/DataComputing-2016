@@ -102,7 +102,7 @@ USMap <-  function(data=NULL, key=NULL, fill=NULL, ...) {
 }
 #' @rdname graphicsHelpers
 #' @export
-mWorldMap <-  function(data=NULL, key=NULL, fill=NULL, ...) {
+WorldMap <-  function(data=NULL, key=NULL, fill=NULL, ...) {
   if(missing(key)) stop("Must specify variable for 'key' argument.")
   if(missing(fill)) stop("Must specify variable for 'fill' argument")
   dataName <- as.character(substitute(data))

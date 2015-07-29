@@ -6,7 +6,6 @@
 \alias{WorldMap}
 \alias{barGraphHelper}
 \alias{distributionGraphHelper}
-\alias{mWorldMap}
 \alias{scatterGraphHelper}
 \title{Interactive interface to ggplot2}
 \usage{
@@ -19,7 +18,7 @@ barGraphHelper(dat)
 
 USMap(data = NULL, key = NULL, fill = NULL, ...)
 
-mWorldMap(data = NULL, key = NULL, fill = NULL, ...)
+WorldMap(data = NULL, key = NULL, fill = NULL, ...)
 }
 \arguments{
 \item{data}{Dataframe containing the variables that might be used in the plot.}
