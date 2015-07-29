@@ -21,6 +21,7 @@
 #' @export
 
 wrangleApp <- function( Input ) {
+  library(shiny)
   # Grab the name of the input.
   nameOfInputDF <- as.character(substitute( Input ))
   # Format the input object as the first part of the assembled command
