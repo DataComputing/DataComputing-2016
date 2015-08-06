@@ -20,7 +20,7 @@
 #' @export
 readStockPrices <- function(symbols='F',
                             what=c("prices","daily","weekly", "monthly", "dividends"),
-                            startYear=1972,endYear=2015) {
+                            start_year=1972,end_year=2015) {
 
   if (! require(RCurl)) stop("Must install RCurl package.")
   if (! require(dplyr)) stop("Must install dplyr package.")
@@ -38,19 +38,29 @@ readStockPrices <- function(symbols='F',
   output <- NULL # for collecting output
 
   for (symbol in symbols) {
-    thisURL <- sprintf(stockURL, symbol, startYear, endYear, yahooCode)
+    thisURL <- sprintf(stockURL, symbol, start_year, end_year, yahooCode)
     con <- try(textConnection(getURLContent( thisURL )))
     if (inherits(con, what = "try-error"))
       stop(paste("Symbol", symbol, "not found in years",
-                 startYear, "to", endYear, "on Yahoo finance."))
+                 start_year, "to", end_year, "on Yahoo finance."))
     res <- read.csv(con)
     res$company <- symbol
     close(con)
     output <- rbind(output, res)
   }
-  output %>%
+  output <- output%>%
     mutate(date = lubridate::ymd(Date)) %>%
-    select(-Date) %>%
-    rename(open = Open, high=High, low=Low, close=Close,
-           volume = Volume, adj_close = Adj.Close)
+    select(-Date)
+  if (yahooCode == 'v') {
+    output <-
+      output %>%
+      rename(dividends = Dividends)
+  } else {
+    output <-
+      output %>%
+      rename(open = Open, high=High, low=Low, close=Close,
+             volume = Volume, adj_close = Adj.Close)
+  }
+
+  output
 }
