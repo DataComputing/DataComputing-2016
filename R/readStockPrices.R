@@ -22,7 +22,8 @@ readStockPrices <- function(symbols='F',
                             what=c("prices","daily","weekly", "monthly", "dividends"),
                             startYear=1972,endYear=2015) {
 
-  if (!require(RCurl)) stop("Must install RCurl package.")
+  if (! require(RCurl)) stop("Must install RCurl package.")
+  if (! require(dplyr)) stop("Must install dplyr package.")
   what <- match.arg(what)
   yahooCode <- switch(what,
                       prices = ,
@@ -47,5 +48,9 @@ readStockPrices <- function(symbols='F',
     close(con)
     output <- rbind(output, res)
   }
-  output
+  output %>%
+    mutate(date = lubridate::ymd(Date)) %>%
+    select(-Date) %>%
+    rename(open = Open, high=High, low=Low, close=Close,
+           volume = Volume, adj_close = Adj.Close)
 }
