@@ -18,7 +18,7 @@
 #' @examples
 #' \dontrun{CarStocks <- readStockPrices("F", "monthly", 1995, 2012)}
 #' @export
-readStockPrices <- function(symbols='F',
+read_stock_prices <- function(symbols='F',
                             what=c("prices","daily","weekly", "monthly", "dividends"),
                             start_year=1972,end_year=2015) {
 
