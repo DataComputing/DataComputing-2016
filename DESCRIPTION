@@ -6,6 +6,7 @@ Date: 2015-07-31
 Author: Daniel Kaplan
 Maintainer: Daniel Kaplan <kaplan@macalester.edu>
 Description: Contains data and support software for the Data Computing book.  Automatically loads other essential packages for the book.
-Depends: R (>= 3.1), ggplot2, dplyr, lubridate, tidyr, stringr, knitr, base64enc, shiny, rmarkdown, stringdist, mosaic
+Depends: R (>= 3.1), ggplot2, dplyr, lubridate, tidyr, stringr, knitr, mosaic
+Uses: igraph, base64enc, shiny, rmarkdown, stringdist
 License: GPL-3
 LazyData: TRUE
