@@ -24,6 +24,7 @@
 #'   # watch out for na.rm in man
 #'   KidsFeet %>% group_by(sex) %>% TRY(summarise(mean(height)))
 #' }
+#' @rdname diagnostics
 #' @export
 TRY <- function(.data, command, interactive=TRUE) {
   if (interactive) View(.data, title="TRY INPUT")
