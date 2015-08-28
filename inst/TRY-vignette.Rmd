@@ -1,5 +1,5 @@
 ---
-title: "Using TRY() to diagnose problems writing dplyr commands"
+title: "Using TRY( ) to diagnose problems writing dplyr commands"
 author: "Daniel Kaplan"
 date: "August 28, 2015"
 output: html_document
@@ -7,4 +7,88 @@ output: html_document
 
 ```{r include=FALSE}
 require(DataComputing)
+options(TRY_interactive = FALSE)
 ```
+
+Data wrangling commands are often composed of a sequence of data very operations connected by pipes.  For example, here's a sequence with just two steps, involving the verbs `group_by()` and `summarise()`.
+
+```{r}
+YearlyAverages <-
+  BabyNames %>% 
+  group_by(sex) %>%
+  summarise(mean(count))
+```
+
+It's easy to make mistakes when composing such commands, e.g.
+```{r error=TRUE}
+YearlyAverages <- 
+  BabyNames %>%
+  rename(sex = gender) %>%
+  group_by(gender) %>%
+  summarise(mean(count))
+```
+
+The error message indicates that there's a problem with `gender`, which is very helpful.  `TRY()` attempts to be more helpful. 
+
+The `TRY()` function examines a data-verb step and checks for common errors.  When it finds an error (or a construction that could be problematic), `TRY()` writes a diagnostic message and asks the user if he or she wants to move on.  It also displays the input data table and the output of the step. (In this document, such interactivity is impossible.  Just the diagnostic messages will be show.)
+
+```{r error = TRUE}
+YearlyAverages <- 
+  BabyNames %>%
+  TRY( rename(sex = gender) ) %>%
+  TRY( group_by(gender) )  %>%
+  TRY( summarise(mean(count)) )
+```
+
+First, note that `TRY()` indicates that there was a problem with the `rename()` step. It also gives a better hint about what the problem is: "Old variable names go to the right of `=`."  This might be enough to help the user fix things, so ...
+
+```{r error = TRUE}
+YearlyAverages <- 
+  BabyNames %>%
+  TRY( rename(gender = sex) ) %>%
+  TRY( group_by(gender) )  %>%
+  TRY( summarise(mean(count)) )
+```
+
+So long as `TRY()` doesn't encounter an error, the result of the command is passed to the next step (if any) in the chain of commands.  Here, both the `rename()` and `group_by()` steps worked find.  The problem identified by `TRY()` in the `substitute()` step isn't fatal, so the chain proceeds to a conclusion.  Nevertheless, `TRY()` points out some possible problems. 
+
+```{r error = TRUE}
+YearlyAverages <- 
+  BabyNames %>%
+  TRY( rename(gender = sex) ) %>%
+  TRY( group_by(gender) )  %>%
+  TRY( summarise(ave = mean(count, na.rm=TRUE)) )
+```
+
+## Examining a step
+
+You can suspend the processing of the command chain by adding a waypoint with the `WAYPOINT()` function. Once suspended, the input to the previous step, and the output from that step are displayed in the `TRY INPUT` and `TRY OUTPUT` tabs of the editor.  This gives you a chance to explore what the step did (and whether it did what you were expecting).  You can have more than one waypoint in a command, so it's best to give each of them a name so you know where you are at.
+
+```{r error = TRUE}
+YearlyAverages <- 
+  BabyNames %>%
+  TRY( rename(gender = sex) ) %>% WAYPOINT(first) %>%
+  TRY( group_by(gender) )  %>% WAYPOINT(second) %>%
+  TRY( summarise(ave = mean(count, na.rm=TRUE)) )
+```
+
+You need to try the above commands interactively to see how this works.
+
+Once you are satisfied with a step, you can delete the following waypoint, or comment it out to deactivate it, like this:
+
+```
+TRY( rename(gender = sex) ) %>% ## WAYPOINT(first) %>%
+```
+    
+## Working with Rmd files
+
+It's a good practice to develop your commands within an Rmd file.  When you do this, you will want `TRY()` and `WAYPOINT()` to be interactive when you execute the commands from the Rmd to the console, but you want them non-interactive when compiling the Rmd.
+
+To accomplish this, set the `TRY_interactive` option to `FALSE` in a chunk of the Rmd document:
+```
+options(TRY_interactive = FALSE)
+```
+
+Don't run that chunk in the console.
+
+[In draft: test whether `knitr` is running to disable interactivity?]

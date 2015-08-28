@@ -1,32 +1,38 @@
 #' Look for mistakes in dplyr commands
 #'
-#' When wrapped around a dplyr command, this function
+#' When wrapped around a dplyr command, TRY()
 #' displays the input data frame and scans the command for common
 #' errors such as variable name mis-spellings, failure to name
 #' arguments as appropriate, etc.  If the command is successful,
 #' the command output is returned and it can be assigned, piped to
 #' further operations, etc.
+#'
+#' A WAYPOINT() can be inserted into a chain to suspend the processing
+#' to give you a chance to look at the input and output from the previous
+#' TRY() step. These are displayed in the `TRY INPUT` and `TRY OUTPUT` tabs
+#' in the editor.  Then, you are prompted to continue or quit at this point.
+#'
 #' ALL commands must have the data table input PIPED into them.  Don't
 #' use the data table as the first argument (unless it is the right table
 #' in a join operation).
 #'
-#' @rdname diagnostics
-#' @aliases TRY
-#' @param command a dplyr command with a piped input
-#' @param interactive if FALSE, don't ask user whether to continue
+#' @rdname TRY
+#' @param command a dplyr command (for a piped input)
+#' @param interactive if TRUE (the default) ask user whether to continue
+#' @param name character string naming a waypoint
 #' when the command has problems
 #' @return The output of the dplyr command
 #'
-#' @examples \dontrun{
-#'   require(mosaicData)
-#'   # height is not a variable in KidsFeet
-#'   # arguments to summarise should be named
-#'   # watch out for na.rm in man
-#'   KidsFeet %>% group_by(sex) %>% TRY(summarise(mean(height)))
-#' }
-#' @rdname diagnostics
+# @examples \dontrun{
+#   require(mosaicData)
+#   # height is not a variable in KidsFeet
+#   # arguments to summarise should be named
+#   # watch out for na.rm in man
+#   KidsFeet %>% group_by(sex) %>% TRY(summarise(mean(height)))
+# }
+#' @aliases TRY WAY_POINT
 #' @export
-TRY <- function(.data, command, interactive=TRUE) {
+TRY <- function(.data, command, interactive=getOption("TRY_interactive",default=TRUE)) {
   if (interactive) View(.data, title="TRY INPUT")
   command <- substitute(command)
   verb_name <- as.character(command[[1]])
@@ -60,6 +66,32 @@ TRY <- function(.data, command, interactive=TRUE) {
     if (interactive) View(res, title=paste("TRY", "OUTPUT"))
     return(res)
   }
+}
+
+#' @rdname TRY
+#' @export
+WAYPOINT <-
+  function(.data, name = NULL,
+           interactive=
+             getOption("TRY_interactive",default=TRUE)) {
+    name <- substitute(name) # in case quotes were forgotten.
+    if (is.null(name)) {
+      warning("Give each waypoint a unique name")
+      name <- "Unnamed waypoint"
+    }
+    if (interactive) {
+      response <- readline(
+      paste0("Stopped at ", name,
+             "\n You can see the input to the last step\n",
+             "  and the output from it in the editor tabs:\n",
+             "  TRY INPUT and TRY OUTPUT.\n\n",
+             "Press 'Enter' to continue, Q to quit. ===>\n\n\n")
+      )
+      if( grepl("Q|q", response))
+        stop(paste0("Quiting from waypoint: ", name, .call = FALSE))
+    }
+    # Ready to go on ...
+    .data # return the input data
 }
 
 # ========================
@@ -258,7 +290,7 @@ check_summarise <- function(command, command_str, .data) {
   if ( ! is.null(P)) res[length(res) + 1 ] <- P
 
   # check on use of rm.na
-  requires_rm.na <- "mean|median|sd|max|min|var"
+  requires_rm.na <- "mean|median|sd|max|min|var|sum|prod"
   for (k in 2:length(command)) {
     this_arg <- deparse(command[[k]])
     if (grepl(requires_rm.na, this_arg) &&
@@ -313,39 +345,4 @@ check_arguments <-
     }
 
     fun(command, command_str, .data)
-}
-#=============================
-
-TRY <- function(.data, command) {
-  View(.data, title="TRY INPUT")
-  command <- substitute(command)
-  verb_name <- as.character(command[[1]])
-  problems <-
-    check_arguments(verb_name, command,  # The call
-                    deparse(command),  # as a string
-                    .data)
-
-  # Were there problems?
-  if (length(problems) > 0) {
-    cat(paste0("Problems in ", deparse(command), ":", "\n * "))
-    cat(paste(problems, collapse="\n * "), "\n")
-    # print them out and ask if user wants to go ahead anyways
-    choice <- menu(c("Continue", "STOP"), title = "\nGo ahead anyways?")
-    if ( choice != 1 ) {
-         stop("Terminated by user.", call. = FALSE)
-    }
-  }
-
-  # If they go ahead, calculate the value, display, and return
-  this_task <- paste0(".data %>% ", deparse(command))
-  res <- try( eval(parse(text = this_task)), silent=TRUE )
-  if ( ! inherits(res, "try-error") ) {
-    View(res, title=paste("TRY", "OUTPUT"))
-    return(res)
-  } else {
-    cat("Error running command:\n    ", deparse(command), "\n")
-    cat("Why? ", gsub("Error :", "", geterrmessage()), "\n")
-    stop(paste0("Terminated by ", command[[1]]), call. = FALSE)
-  }
-
 }
