@@ -1,7 +1,7 @@
 Package: DataComputing
 Type: Package
 Title: Package with data and examples for the Data Computing book
-Version: 0.8
+Version: 0.8.1
 Date: 2015-07-31
 Author: Daniel Kaplan
 Maintainer: Daniel Kaplan <kaplan@macalester.edu>
