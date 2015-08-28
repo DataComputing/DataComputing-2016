@@ -1,4 +1,67 @@
+#' Look for mistakes in dplyr commands
+#'
+#' When wrapped around a dplyr command, this function
+#' displays the input data frame and scans the command for common
+#' errors such as variable name mis-spellings, failure to name
+#' arguments as appropriate, etc.  If the command is successful,
+#' the command output is returned and it can be assigned, piped to
+#' further operations, etc.
+#' ALL commands must have the data table input PIPED into them.  Don't
+#' use the data table as the first argument (unless it is the right table
+#' in a join operation).
+#'
+#' @rdname diagnostics
+#' @aliases TRY
+#' @param command a dplyr command with a piped input
+#' @param interactive if FALSE, don't ask user whether to continue
+#' when the command has problems
+#' @return The output of the dplyr command
+#'
+#' @examples \dontrun{
+#'   require(mosaicData)
+#'   # height is not a variable in KidsFeet
+#'   # arguments to summarise should be named
+#'   # watch out for na.rm in man
+#'   KidsFeet %>% group_by(sex) %>% TRY(summarise(mean(height)))
+#' }
+#' @export
+TRY <- function(.data, command, interactive=TRUE) {
+  if (interactive) View(.data, title="TRY INPUT")
+  command <- substitute(command)
+  verb_name <- as.character(command[[1]])
+  problems <-
+    check_arguments(verb_name, command,  # The call
+                    deparse(command),  # as a string
+                    .data)
 
+  # Were there problems?
+  if (length(problems) > 0) {
+    cat(paste0("Problems in ", deparse(command), ":", "\n * "))
+    cat(paste(problems, collapse="\n * "), "\n")
+    if (interactive) {
+      # print them out and ask if user wants to go ahead anyways
+      choice <- menu(c("Continue", "STOP"), title = "\nGo ahead anyways?")
+      if ( choice != 1 ) {
+        stop("Terminated by user.", call. = FALSE)
+      }
+    }
+  }
+
+  # If they go ahead, calculate the value, display, and return
+  this_task <- paste0(".data %>% ", deparse(command))
+  res <- try( eval(parse(text = this_task)), silent=TRUE )
+  if (inherits(res, "try-error")) {
+    cat("Error running command:\n    ", deparse(command), "\n")
+    cat("Why? ", gsub("Error :", "", geterrmessage()), "\n")
+    stop(paste0("Terminated by ", command[[1]]), call. = FALSE)
+  } else {
+    # something was calculated!
+    if (interactive) View(res, title=paste("TRY", "OUTPUT"))
+    return(res)
+  }
+}
+
+# ========================
 check_names_in_data <- function(command, .data){
   v_names <- all.vars(command)
   env_names <- ls(.GlobalEnv)
@@ -73,6 +136,18 @@ check_tally <- function(command, command_str, .data) {
 
   # In fact, it can take a "sort" argument and a "wt" argument.
 }
+
+#============================
+check_mutate <- function(command, command_str, .data){
+  res <- NULL
+  # do the variables mentioned
+  P <- check_names_in_data(command, .data)
+  if ( ! is.null(P)) res[length(res) + 1] <- P
+  P <- args_must_be_named(command, command_str, .data)
+  if ( ! is.null(P)) res[length(res) + 1] <- P
+
+  res
+}
 #============================
 check_rename <- function(command, command_str, .data){
   vars <- all.vars(command)
@@ -98,6 +173,8 @@ args_must_be_named <- function(command, command_str, .data){
   if (length(command) <= 1 ) return(res)
 
   arg_names <- argument_names(command)
+  if (is.null(arg_names))
+    res <- "Arguments must be in named-argument style."
   no_names <- which(arg_names == "")
   if (length(no_names) == 1)
     res <- paste("Argument", no_names, "isn't being given a new name.", collapse=",")
@@ -224,6 +301,8 @@ check_arguments <-
            "anti_join" = check_join,
            "semi_join" = check_join,
            "full_join" = check_join,
+           "mutate"    = check_mutate,
+           "transform" = check_mutate,
 
            NULL
            )

@@ -1,0 +1,10 @@
+---
+title: "Using TRY() to diagnose problems writing dplyr commands"
+author: "Daniel Kaplan"
+date: "August 28, 2015"
+output: html_document
+---
+
+```{r include=FALSE}
+require(DataComputing)
+```
