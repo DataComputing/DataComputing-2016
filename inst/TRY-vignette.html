@@ -122,6 +122,24 @@ img {
 <p>Once you are satisfied with a step, you can delete the following waypoint, or comment it out to deactivate it, like this:</p>
 <pre><code>TRY( rename(gender = sex) ) %&gt;% ## WAYPOINT(first) %&gt;%</code></pre>
 </div>
+<div id="multiple-steps-in-a-single-try" class="section level2">
+<h2>Multiple steps in a single TRY()</h2>
+<p>Putting multiple steps into a single <code>TRY()</code> will stop at the first step that displays problems or causes an error. That might be helpful in screening a long command for problems, but I don’t think it’s better than arranging one <code>TRY()</code> for each step.</p>
+<pre class="r"><code>Overall &lt;- 
+  KidsFeet %&gt;% 
+  TRY(
+    group_by(sexx) %&gt;% 
+      tally() %&gt;% 
+      arrange(nn)
+    )</code></pre>
+<pre><code>## Problems in group_by(sexx):
+##  * No such variable:  sexx 
+## Error running command:
+##      group_by(sexx) 
+## Why?  Error in eval(expr, envir, enclos) : unknown column 'sexx'
+## </code></pre>
+<pre><code>## Error: Terminated by group_by</code></pre>
+</div>
 <div id="working-with-rmd-files" class="section level2">
 <h2>Working with Rmd files</h2>
 <p>It’s a good practice to develop your commands within an Rmd file. When you do this, you will want <code>TRY()</code> and <code>WAYPOINT()</code> to be interactive when you execute the commands from the Rmd to the console, but you want them non-interactive when compiling the Rmd.</p>

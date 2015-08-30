@@ -31,25 +31,28 @@
 #   KidsFeet %>% group_by(sex) %>% TRY(summarise(mean(height)))
 # }
 
-TRY_helper <- function(.data, CC, interactive) {
-  browser()
-
-}
 
 #' @aliases TRY WAY_POINT
 #' @export
 TRY <- function(.data, command,
                 interactive=getOption("TRY_interactive",default=TRUE)) {
   if (interactive) View(.data, title="TRY INPUT")
-  browser()
   command <- substitute(command)
+  # return value
+  TRY_helper(.data, command, interactive)
+}
+# ====================
+# TRY_helper() doesn't have to apply substitute to the command
+# That's already been done in TRY()
+TRY_helper <- function(.data, command, interactive) {
   verb_name <- as.character(command[[1]])
   if (verb_name == "%>%") {
-    browser()
     # it's a compound statement, divide it into parts
     mid_data <- TRY_helper(.data, command[[2]], interactive)
     # replace .data and continue on
-    command <- command[[3]]
+    .data <- mid_data
+    verb_name <- as.character(command[[3]][[1]])
+    command <- command[[3]] # just the rest of the command
   }
   problems <-
     check_arguments(verb_name, command,  # The call
@@ -95,44 +98,6 @@ show_problems <- function(problems, command, interactive) {
   }
 }
 # ====================
-
-check_compound <- function(command, command_str, .data, interactive) {
-  # This function provides it's own system for displaying problems and evaluating
-  # the commands in the compound statement.
-
-browser()
-
-  # check that the %>% makes sense.  It has to be a pipe between two things.
-  # These two things are the second and third components to <command>.
-  if( length(command) < 3 )
-    stop("Dangling pipe '%>%'.  Argument inside parentheses of TRY() should not\nstart or end with a pipe."  )
-
-  # the first component of <command> is "%>%".  The second component of <command>
-  # is the *expression* preceeding the %>%.
-  # The third component is the rest of the command.
-
-  problems <- check_arguments(as.character(command[[2]][[1]]),
-                               command[[2]],
-                               deparse(command[[2]]),
-                               .data,
-                               interactive)
-  # Were there problems?
-  show_problems(problems, command[[2]], interactive)
-
-  # If no problems, evaluate the command, display errors if any, and return
-  .data2 <- eval_command(command[[2]], interactive, .data) # input to rest of compound command
-
-  browser()
-  # move on to the rest of the command
-  problems2 <- check_arguments(as.character(command[[3]][[1]]),
-                              command[[3]],
-                              deparse(command[[3]]),
-                              .data2,
-                              interactive)
-
-  problems2
-
-}
 
 #' @rdname TRY
 #' @export

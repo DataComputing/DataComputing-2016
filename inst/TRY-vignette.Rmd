@@ -80,6 +80,22 @@ Once you are satisfied with a step, you can delete the following waypoint, or co
 TRY( rename(gender = sex) ) %>% ## WAYPOINT(first) %>%
 ```
     
+## Multiple steps in a single TRY() 
+
+Putting multiple steps into a single `TRY()` will stop at the first step that displays problems or causes an error.  That might be helpful in screening a long command for problems, but I don't think it's better than arranging one `TRY()` for each step.
+
+
+```{r error=TRUE}
+Overall <- 
+  KidsFeet %>% 
+  TRY(
+    group_by(sexx) %>% 
+      tally() %>% 
+      arrange(nn)
+    )
+```
+   
+    
 ## Working with Rmd files
 
 It's a good practice to develop your commands within an Rmd file.  When you do this, you will want `TRY()` and `WAYPOINT()` to be interactive when you execute the commands from the Rmd to the console, but you want them non-interactive when compiling the Rmd.
