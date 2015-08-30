@@ -30,31 +30,43 @@
 #   # watch out for na.rm in man
 #   KidsFeet %>% group_by(sex) %>% TRY(summarise(mean(height)))
 # }
+
+TRY_helper <- function(.data, CC, interactive) {
+  browser()
+
+}
+
 #' @aliases TRY WAY_POINT
 #' @export
-TRY <- function(.data, command, interactive=getOption("TRY_interactive",default=TRUE)) {
+TRY <- function(.data, command,
+                interactive=getOption("TRY_interactive",default=TRUE)) {
   if (interactive) View(.data, title="TRY INPUT")
+  browser()
   command <- substitute(command)
   verb_name <- as.character(command[[1]])
+  if (verb_name == "%>%") {
+    browser()
+    # it's a compound statement, divide it into parts
+    mid_data <- TRY_helper(.data, command[[2]], interactive)
+    # replace .data and continue on
+    command <- command[[3]]
+  }
   problems <-
     check_arguments(verb_name, command,  # The call
                     deparse(command),  # as a string
-                    .data)
+                    .data,
+                    interactive)
 
   # Were there problems?
-  if (length(problems) > 0) {
-    cat(paste0("Problems in ", deparse(command), ":", "\n * "))
-    cat(paste(problems, collapse="\n * "), "\n")
-    if (interactive) {
-      # print them out and ask if user wants to go ahead anyways
-      choice <- menu(c("Continue", "STOP"), title = "\nGo ahead anyways?")
-      if ( choice != 1 ) {
-        stop("Terminated by user.", call. = FALSE)
-      }
-    }
-  }
+  show_problems(problems, command, interactive)
 
-  # If they go ahead, calculate the value, display, and return
+  # If no problems, evaluate the command, display errors if any, and return
+  res <- eval_command(command, interactive, .data) # produces value to return
+  return(res)
+
+}
+# =====================
+eval_command <- function(command, interactive, .data) {
   this_task <- paste0(".data %>% ", deparse(command))
   res <- try( eval(parse(text = this_task)), silent=TRUE )
   if (inherits(res, "try-error")) {
@@ -66,6 +78,60 @@ TRY <- function(.data, command, interactive=getOption("TRY_interactive",default=
     if (interactive) View(res, title=paste("TRY", "OUTPUT"))
     return(res)
   }
+}
+
+#======================
+show_problems <- function(problems, command, interactive) {
+  if (length(problems) > 0) {
+    cat(paste0("Problems in ", deparse(command), ":", "\n * "))
+    cat(paste(problems, collapse="\n * "), "\n")
+    if (interactive) {
+      # print them out and ask if user wants to go ahead anyways
+      choice <- menu(c("Continue", "STOP"), title = "\nGo ahead anyways?")
+      if ( choice != 1 ) {
+        stop("Terminated by user.", call. = FALSE)
+      }
+    }
+  }
+}
+# ====================
+
+check_compound <- function(command, command_str, .data, interactive) {
+  # This function provides it's own system for displaying problems and evaluating
+  # the commands in the compound statement.
+
+browser()
+
+  # check that the %>% makes sense.  It has to be a pipe between two things.
+  # These two things are the second and third components to <command>.
+  if( length(command) < 3 )
+    stop("Dangling pipe '%>%'.  Argument inside parentheses of TRY() should not\nstart or end with a pipe."  )
+
+  # the first component of <command> is "%>%".  The second component of <command>
+  # is the *expression* preceeding the %>%.
+  # The third component is the rest of the command.
+
+  problems <- check_arguments(as.character(command[[2]][[1]]),
+                               command[[2]],
+                               deparse(command[[2]]),
+                               .data,
+                               interactive)
+  # Were there problems?
+  show_problems(problems, command[[2]], interactive)
+
+  # If no problems, evaluate the command, display errors if any, and return
+  .data2 <- eval_command(command[[2]], interactive, .data) # input to rest of compound command
+
+  browser()
+  # move on to the rest of the command
+  problems2 <- check_arguments(as.character(command[[3]][[1]]),
+                              command[[3]],
+                              deparse(command[[3]]),
+                              .data2,
+                              interactive)
+
+  problems2
+
 }
 
 #' @rdname TRY
@@ -108,7 +174,7 @@ check_names_in_data <- function(command, .data){
   res
 }
 #======================
-check_filter <- function(command, command_str, .data){
+check_filter <- function(command, command_str, .data, interactive){
   problems <- check_names_in_data(command, .data)
   # Check that there are no assignment = in place of ==
   if( grepl("[^=]=[^=]", command_str))
@@ -150,20 +216,20 @@ argument_names <- function(command) {
   res
 }
 #============================
-check_select <- function(command, command_str, .data){
+check_select <- function(command, command_str, .data, interactive){
   # not yet set up for the sequence-naming functions in dplyr
   check_names_in_data(command, .data)
 }
 #=============================
-check_arrange <- function(command, command_str, .data){
+check_arrange <- function(command, command_str, .data, interactive){
   check_names_in_data(command, .data)
 }
 #============================
-check_group_by <- function(command, command_str, .data){
+check_group_by <- function(command, command_str, .data, interactive){
   check_names_in_data(command, .data)
 }
 #============================
-check_tally <- function(command, command_str, .data) {
+check_tally <- function(command, command_str, .data, interactive) {
   if (length(command) > 1 ) return("tally() takes no arguments.")
   return(NULL) # no problems
 
@@ -171,7 +237,7 @@ check_tally <- function(command, command_str, .data) {
 }
 
 #============================
-check_mutate <- function(command, command_str, .data){
+check_mutate <- function(command, command_str, .data, interactive){
   res <- NULL
   # do the variables mentioned
   P <- check_names_in_data(command, .data)
@@ -182,7 +248,7 @@ check_mutate <- function(command, command_str, .data){
   res
 }
 #============================
-check_rename <- function(command, command_str, .data){
+check_rename <- function(command, command_str, .data, interactive){
   vars <- all.vars(command)
 
   missing <- vars[! vars %in% names(.data)]
@@ -217,7 +283,7 @@ args_must_be_named <- function(command, command_str, .data){
   res
 }
 #=============================
-check_join <- function(command, command_str, .data){
+check_join <- function(command, command_str, .data, interactive){
   # first argument must be a data frame
 
   if (length(command) > 1) {
@@ -284,7 +350,7 @@ check_join <- function(command, command_str, .data){
   res
 }
 #=============================
-check_summarise <- function(command, command_str, .data) {
+check_summarise <- function(command, command_str, .data, interactive) {
   res <- args_must_be_named(command, command_str, .data)
   P <-   check_names_in_data(command, .data)
   if ( ! is.null(P)) res[length(res) + 1 ] <- P
@@ -319,7 +385,7 @@ argument_is_data_frame <- function(command) {
 #============================
 
 check_arguments <-
-  function(verb_name=NULL, command, command_str, .data) {
+  function(verb_name=NULL, command, command_str, .data, interactive) {
     fun <- switch(verb_name,
            "filter"  = check_filter,
            "select"  = check_select,
@@ -344,5 +410,5 @@ check_arguments <-
                     verb_name, "() function"))
     }
 
-    fun(command, command_str, .data)
+    fun(command, command_str, .data, interactive)
 }
