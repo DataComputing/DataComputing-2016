@@ -32,7 +32,7 @@ YearlyAverages <-
   summarise(mean(count))
 ```
 
-The error message indicates that there's a problem with `gender`, which is very helpful.  `TRY()` attempts to be more helpful. 
+The error message indicates that there's a problem with `gender`, which is very helpful.  `TRY()`, part of the `DataComputing` package, attempts to be more helpful. 
 
 The `TRY()` function examines a data-verb step and checks for common errors.  When it finds an error (or a construction that could be problematic), `TRY()` writes a diagnostic message and asks the user if he or she wants to move on.  It also displays the input data table and the output of the step. (In this document, such interactivity is impossible.  Just the diagnostic messages will be show.)
 

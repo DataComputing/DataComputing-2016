@@ -81,7 +81,7 @@ img {
   group_by(gender) %&gt;%
   summarise(mean(count))</code></pre>
 <pre><code>## Error: Unknown variables: gender.</code></pre>
-<p>The error message indicates that there’s a problem with <code>gender</code>, which is very helpful. <code>TRY()</code> attempts to be more helpful.</p>
+<p>The error message indicates that there’s a problem with <code>gender</code>, which is very helpful. <code>TRY()</code>, part of the <code>DataComputing</code> package, attempts to be more helpful.</p>
 <p>The <code>TRY()</code> function examines a data-verb step and checks for common errors. When it finds an error (or a construction that could be problematic), <code>TRY()</code> writes a diagnostic message and asks the user if he or she wants to move on. It also displays the input data table and the output of the step. (In this document, such interactivity is impossible. Just the diagnostic messages will be show.)</p>
 <pre class="r"><code>YearlyAverages &lt;- 
   BabyNames %&gt;%
