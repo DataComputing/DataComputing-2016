@@ -36,8 +36,12 @@
 #' @export
 TRY <- function(.data, command,
                 interactive=getOption("TRY_interactive",default=TRUE)) {
-  if (interactive) View(.data, title="TRY INPUT")
+  # don't evaluate <command> yet
   command <- substitute(command)
+
+  if (interactive) {
+    if (inherits(.data, "data.frame")) View(.data, title="TRY INPUT")
+  }
   # return value
   TRY_helper(.data, command, interactive)
 }
@@ -78,7 +82,19 @@ eval_command <- function(command, interactive, .data) {
     stop(paste0("Terminated by ", command[[1]]), call. = FALSE)
   } else {
     # something was calculated!
-    if (interactive) View(res, title=paste("TRY", "OUTPUT"))
+    if (interactive) {
+      if (inherits(res, "data.frame")) {
+        View(res, title=paste("TRY", "OUTPUT"))
+      }
+      if (inherits(res, "ggplot")) {
+        # Show the plot up to now?
+        if (length(res$layers) == 0)
+          res + geom_blank()
+        else
+          res
+      }
+
+    }
     return(res)
   }
 }
@@ -348,7 +364,14 @@ argument_is_data_frame <- function(command) {
 
 }
 #============================
+check_ggplot <- function(command, command_str, .data, interactive) {
+  P <-   check_names_in_data(command, .data)
+  if (grepl("aes=", command_str))
+    P[length(P) + 1] <- "Use aes() as function, *not* 'aes='."
 
+  return(P)
+}
+#============================
 check_arguments <-
   function(verb_name=NULL, command, command_str, .data, interactive) {
     fun <- switch(verb_name,
@@ -367,6 +390,7 @@ check_arguments <-
            "full_join" = check_join,
            "mutate"    = check_mutate,
            "transform" = check_mutate,
+           "ggplot"    = check_ggplot,
 
            NULL
            )
