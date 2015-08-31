@@ -48,11 +48,11 @@ TRY <- function(.data, command,
 # ====================
 # TRY_helper() doesn't have to apply substitute to the command
 # That's already been done in TRY()
-TRY_helper <- function(.data, command, interactive) {
+TRY_helper <- function(.data, command, interact) {
   verb_name <- as.character(command[[1]])
   if (verb_name == "%>%") {
     # it's a compound statement, divide it into parts
-    mid_data <- TRY_helper(.data, command[[2]], interactive)
+    mid_data <- TRY_helper(.data, command[[2]], interact)
     # replace .data and continue on
     .data <- mid_data
     verb_name <- as.character(command[[3]][[1]])
@@ -62,36 +62,51 @@ TRY_helper <- function(.data, command, interactive) {
     check_arguments(verb_name, command,  # The call
                     deparse(command),  # as a string
                     .data,
-                    interactive)
+                    interact)
 
   # Were there problems?
-  show_problems(problems, command, interactive)
+  show_problems(problems, command, interact)
 
   # If no problems, evaluate the command, display errors if any, and return
-  res <- eval_command(command, interactive, .data) # produces value to return
+  res <- eval_command(command, interact, .data) # produces value to return
   return(res)
 
 }
 # =====================
-eval_command <- function(command, interactive, .data) {
-  this_task <- paste0(".data %>% ", deparse(command))
+eval_command <- function(command, interact, .data) {
+  in_between <- "%>%"
+  # deal with ggplot's use of "+"
+  if (grepl("geom_", as.character(command[[1]]))) in_between <- "+"
+
+
+  this_task <- paste(".data", in_between, deparse(command))
   res <- try( eval(parse(text = this_task)), silent=TRUE )
+
   if (inherits(res, "try-error")) {
     cat("Error running command:\n    ", deparse(command), "\n")
     cat("Why? ", gsub("Error :", "", geterrmessage()), "\n")
     stop(paste0("Terminated by ", command[[1]]), call. = FALSE)
   } else {
     # something was calculated!
-    if (interactive) {
+    if (interact) {
       if (inherits(res, "data.frame")) {
         View(res, title=paste("TRY", "OUTPUT"))
       }
+
       if (inherits(res, "ggplot")) {
         # Show the plot up to now?
-        if (length(res$layers) == 0)
-          res + geom_blank()
-        else
-          res
+        if (length(res$layers) == 0) {
+          p <- res + geom_blank()
+        } else {
+          p <- res
+        }
+
+        res <- try(print(p), silent = TRUE)
+        if (inherits(res, "try-error")) {
+          cat("Error running command:\n    ", deparse(command), "\n")
+          cat("Why? ", gsub("Error :", "", geterrmessage()), "\n")
+          stop(paste0("Terminated by ", command[[1]]), call. = FALSE)
+        }
       }
 
     }
@@ -100,11 +115,11 @@ eval_command <- function(command, interactive, .data) {
 }
 
 #======================
-show_problems <- function(problems, command, interactive) {
+show_problems <- function(problems, command, interact) {
   if (length(problems) > 0) {
     cat(paste0("Problems in ", deparse(command), ":", "\n * "))
     cat(paste(problems, collapse="\n * "), "\n")
-    if (interactive) {
+    if (interact) {
       # print them out and ask if user wants to go ahead anyways
       choice <- menu(c("Continue", "STOP"), title = "\nGo ahead anyways?")
       if ( choice != 1 ) {
@@ -119,14 +134,14 @@ show_problems <- function(problems, command, interactive) {
 #' @export
 WAYPOINT <-
   function(.data, name = NULL,
-           interactive=
+           interact=
              getOption("TRY_interactive",default=TRUE)) {
     name <- substitute(name) # in case quotes were forgotten.
     if (is.null(name)) {
       warning("Give each waypoint a unique name")
       name <- "Unnamed waypoint"
     }
-    if (interactive) {
+    if (interact) {
       response <- readline(
       paste0("Stopped at ", name,
              "\n You can see the input to the last step\n",
@@ -155,7 +170,7 @@ check_names_in_data <- function(command, .data){
   res
 }
 #======================
-check_filter <- function(command, command_str, .data, interactive){
+check_filter <- function(command, command_str, .data, interact){
   problems <- check_names_in_data(command, .data)
   # Check that there are no assignment = in place of ==
   if( grepl("[^=]=[^=]", command_str))
@@ -197,20 +212,20 @@ argument_names <- function(command) {
   res
 }
 #============================
-check_select <- function(command, command_str, .data, interactive){
+check_select <- function(command, command_str, .data, interact){
   # not yet set up for the sequence-naming functions in dplyr
   check_names_in_data(command, .data)
 }
 #=============================
-check_arrange <- function(command, command_str, .data, interactive){
+check_arrange <- function(command, command_str, .data, interact){
   check_names_in_data(command, .data)
 }
 #============================
-check_group_by <- function(command, command_str, .data, interactive){
+check_group_by <- function(command, command_str, .data, interact){
   check_names_in_data(command, .data)
 }
 #============================
-check_tally <- function(command, command_str, .data, interactive) {
+check_tally <- function(command, command_str, .data, interact) {
   if (length(command) > 1 ) return("tally() takes no arguments.")
   return(NULL) # no problems
 
@@ -218,7 +233,7 @@ check_tally <- function(command, command_str, .data, interactive) {
 }
 
 #============================
-check_mutate <- function(command, command_str, .data, interactive){
+check_mutate <- function(command, command_str, .data, interact){
   res <- NULL
   # do the variables mentioned
   P <- check_names_in_data(command, .data)
@@ -229,7 +244,7 @@ check_mutate <- function(command, command_str, .data, interactive){
   res
 }
 #============================
-check_rename <- function(command, command_str, .data, interactive){
+check_rename <- function(command, command_str, .data, interact){
   vars <- all.vars(command)
 
   missing <- vars[! vars %in% names(.data)]
@@ -264,7 +279,7 @@ args_must_be_named <- function(command, command_str, .data){
   res
 }
 #=============================
-check_join <- function(command, command_str, .data, interactive){
+check_join <- function(command, command_str, .data, interact){
   # first argument must be a data frame
 
   if (length(command) > 1) {
@@ -331,7 +346,7 @@ check_join <- function(command, command_str, .data, interactive){
   res
 }
 #=============================
-check_summarise <- function(command, command_str, .data, interactive) {
+check_summarise <- function(command, command_str, .data, interact) {
   res <- args_must_be_named(command, command_str, .data)
   P <-   check_names_in_data(command, .data)
   if ( ! is.null(P)) res[length(res) + 1 ] <- P
@@ -364,16 +379,145 @@ argument_is_data_frame <- function(command) {
 
 }
 #============================
-check_ggplot <- function(command, command_str, .data, interactive) {
-  P <-   check_names_in_data(command, .data)
-  if (grepl("aes=", command_str))
-    P[length(P) + 1] <- "Use aes() as function, *not* 'aes='."
+check_ggplot <- function(command, command_str, .data, interact) {
+
+
+  # Replace this with the logic from check_layer, which does more checking.
+  P <- check_names_in_data(command, .data)
+  P <- c(P, check_aes_form(command, command_str, .data))
+
+  return(P)
+}
+#============================
+# list of commonly used aesthetics
+plausible_aesthetics <-
+  c("x", "y", "color", "colour", "shape", "size", "group",
+    "alpha", "linetype", "lower", "middle", "upper",
+    "ymax", "ymin", "linetype", "weight")
+#============================
+check_aes_form <- function(command, command_str, .data) {
+  P <- NULL
+  if (grepl("aes=", command_str)) {
+    P <- "Use aes() as function, *not* 'aes='."
+  } else {
+    # look for the aes() call
+    aes_call <- find_subcommand(command, "aes")
+    if ( ! is.null(aes_call)) { # there is an aes() call
+      # check the names of the arguments.  Make sure they are reasonable.
+      arg_names <- argument_names(aes_call)
+      # every argument must have a name
+      if (any(arg_names == ""))
+        P <- c(P, "All arguments to aes() must be named.")
+
+      not_in_list <- arg_names[ ! arg_names %in% plausible_aesthetics]
+      if (length(not_in_list) != 0) {
+        message <- paste0("Are you sure these are aesthetics? ",
+                          not_in_list,
+                          collapse = ",")
+        P <- c(P, message)
+      }
+
+      # all aethetics in aes() must be mapped to variable names
+      var_names <- names(.data)
+      bad_names <- NULL
+      for (k in 2:length(aes_call)) {
+        in_this <- all.vars(aes_call[[k]])
+        bad_names <- c(bad_names, in_this[ ! in_this %in% var_names])
+      }
+      if (length(bad_names) != 0) {
+        message <- paste0(
+          "aes() takes only variable names as arguments.\n",
+          "    These are not variable names: ", bad_names, collapse = ",")
+        P <- c(P, message)
+      }
+    }
+
+  }
+
+  P # return value
+}
+# ============================
+find_subcommand <- function(command, command_name) {
+  # recurse over command tree and return any branch headed
+  # by <command_name>
+
+  # check this command
+  if (is.name(command)) # just an unadorned name
+    return(NULL)
+
+  if(as.character(command[[1]]) == command_name) # A match!
+    return(command)
+
+  if (length(command) <= 1) {
+    # we're at a leaf
+    return(NULL)
+  } else {
+    for (k in 2:length(command)) {
+      res <- find_subcommand(command[[k]], command_name)
+      if ( ! is.null(res)) return(res)
+    }
+  }
+
+  return(NULL)
+
+}
+#============================
+check_layer <- function(command, command_str, .data, interact) {
+  # See if .data is a data frame or a ggplot object
+  # If the latter, check whether <command> has a
+  # data= component and set that
+  # to be the data to be checked.
+  # Otherwise, extract the data from the ggplot object
+  arg_names <- argument_names(command)
+  data_subcommand <- which("data" == arg_names) # the index - 1
+  if (length(data_subcommand) == 0 ) {
+    if (inherits(.data, "ggplot")) {
+      whatever_the_data_is <- .data$data # get from ggplot
+    }
+  } else {
+    data_subcommand <- command[[data_subcommand + 1]]
+
+    whatever_the_data_is <- try(eval(data_subcommand))
+    if (inherits(whatever_the_data_is, "try-error")) {
+      return(paste("Data table", deparse(data_subcommand), "not found."))
+    }
+  }
+
+  P <- check_names_in_data(command, whatever_the_data_is)
+  P <- c(P, check_aes_form(command, command_str,
+                           whatever_the_data_is))
+
+  # Now check that all the named arguments
+  # other than data= are *not* in the data
+  other_named <- which( ! arg_names %in% c("data", ""))
+
+  bad <- NULL
+  for (k in other_named) {
+    vname <- as.character(command[[k+1]])
+    dnames <- names(whatever_the_data_is)
+    if (vname %in% dnames)
+      bad <- c(bad, paste("Aesthetic", arg_names[k],
+                          "should be constant,  not variable:", vname))
+  }
+  P <- c(P, bad)
+
+  # Are the aesthetic names right?
+  browser()
+  the_aesthetics <- arg_names[other_named]
+  bad <- the_aesthetics[ ! the_aesthetics %in% plausible_aesthetics]
+  if ( ! is.null(bad)) {
+    message <- paste0("Are you sure these are aesthetics? ",
+                      bad,
+                      collapse = ",")
+    P <- c(P, message)
+  }
+
 
   return(P)
 }
 #============================
 check_arguments <-
-  function(verb_name=NULL, command, command_str, .data, interactive) {
+  function(verb_name=NULL, command, command_str, .data, interact) {
     fun <- switch(verb_name,
            "filter"  = check_filter,
            "select"  = check_select,
@@ -391,6 +535,7 @@ check_arguments <-
            "mutate"    = check_mutate,
            "transform" = check_mutate,
            "ggplot"    = check_ggplot,
+           "geom_point"= check_layer,
 
            NULL
            )
@@ -399,5 +544,5 @@ check_arguments <-
                     verb_name, "() function"))
     }
 
-    fun(command, command_str, .data, interactive)
+    fun(command, command_str, .data, interact)
 }
