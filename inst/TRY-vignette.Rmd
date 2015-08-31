@@ -1,7 +1,7 @@
 ---
-title: "Using TRY( ) to diagnose problems writing dplyr commands"
+title: "Using TRY( ) to diagnose problems writing dplyr and ggplot commands"
 author: "Daniel Kaplan"
-date: "August 28, 2015"
+date: "Data Computing"
 output: html_document
 ---
 
@@ -19,7 +19,11 @@ YearlyAverages <-
   summarise(mean(count))
 ```
 
-It's easy to make mistakes when composing such commands, e.g.
+It's easy to make mistakes when composing such commands.  As a teacher, I find that much time is spent trying to find mistakes in students' code.  For students, the time they spend trying to fix mistakes on their own or  waiting for me to get around to helping them is frustrating and, for students who can't find their own mistakes, shakes their confidence.
+
+I want to encourage the beginning student to try to identify the origin of errors and fix things. Although I'm happy to help students, it's better for them not to have to rely on an expert.  Instead, they should become experts themselves. 
+
+To illustrate a mistake that a student (or anyone else!) might make, consider this wrangling command intended to find the yearly average number of births in the US, broken down by sex.  Following current fashion, the student wants to refer to sex with the word "gender."
 ```{r error=TRUE}
 YearlyAverages <- 
   BabyNames %>%
@@ -80,12 +84,12 @@ Once you are satisfied with a step, you can delete the following waypoint, or co
 TRY( rename(gender = sex) ) %>% ## WAYPOINT(first) %>%
 ```
     
-## Multiple steps in a single TRY() 
+## Multiple steps in a single TRY( ) 
 
 Putting multiple steps into a single `TRY()` will stop at the first step that displays problems or causes an error.  That might be helpful in screening a long command for problems, but I don't think it's better than arranging one `TRY()` for each step.
 
 
-```{r error=TRUE}
+```{r error=TRUE, eval=FALSE}
 Overall <- 
   KidsFeet %>% 
   TRY(
@@ -94,7 +98,33 @@ Overall <-
       arrange(nn)
     )
 ```
+ 
+## TRY( ) with ggplot 
    
+`TRY()` has a few diagnostics for `ggplot()` and various geoms. For instance, `TRY()` checks whether aesthetics inside `aes()` are mapped to variables and whether aestheetics outside `aes()` are set to constants.  It also checks the names of aesthetics and whether variables used for mapping are contained in the data table used by a layer.
+
+Since `ggplot()` uses `+` to connect the various commands constructing  layers, facets, themes, etc., you need to pack all of the `ggplot`-related commands into a single `TRY()`.  For example:
+
+```{r error=TRUE}
+KidsFeet %>% 
+  TRY(
+    ggplot(aes(x=width, y=length, shape=sex)) + 
+      geom_point(color= 'red') + 
+      geom_path(aes(fill = sex))
+    )
+```
+You cannot use `WAYPOINT()` inside of `TRY()`.
+
+If you want to break up the `ggplot` commands into separate `TRY()` statements so that you can set a waypoint, you will have to connect the `TRY()` with the `%>%` pipe, **not** `+`.
+
+```{r error=TRUE, eval=FALSE}
+KidsFeet %>% 
+  TRY( ggplot(aes(x=width, y=length, shape=sex)) ) %>%
+  TRY( geom_point(color= 'red') ) %>% WAYPOINT(dots) %>%
+  TRY( geom_path(aes(fill = sex)) )
+```
+ 
+Regrettably, when removing the `TRY()` after the statement has been debugged, you will need to pay attention to changing the `%>%` into `+`.  This is prone to mistakes and such mistakes lead to an cryptic error message from `ggplot()`.
     
 ## Working with Rmd files
 
@@ -108,3 +138,7 @@ options(TRY_interactive = FALSE)
 Don't run that chunk in the console.
 
 [In draft: test whether `knitr` is running to disable interactivity?]
+
+## Extending TRY( )
+
+The diagnostics in `TRY()` are heuristics aimed to identify specific, common mistakes.  It's possible to add new heuristics tuned for a specific `dplyr` or `ggplot2` function (or potentially, functions from other packages).  If you identify a common mistake that `TRY()` doesn't handle, send a note describing it to `kaplan@macalester.edu`, or, if you know how, add it into `TRY()` yourself and send a pull request.

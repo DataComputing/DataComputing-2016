@@ -50,7 +50,7 @@ TRY <- function(.data, command,
 # That's already been done in TRY()
 TRY_helper <- function(.data, command, interact) {
   verb_name <- as.character(command[[1]])
-  if (verb_name == "%>%") {
+  if (verb_name == "%>%" || verb_name == "+") {
     # it's a compound statement, divide it into parts
     mid_data <- TRY_helper(.data, command[[2]], interact)
     # replace .data and continue on
@@ -78,7 +78,6 @@ eval_command <- function(command, interact, .data) {
   # deal with ggplot's use of "+"
   if (grepl("geom_", as.character(command[[1]]))) in_between <- "+"
 
-
   this_task <- paste(".data", in_between, deparse(command))
   res <- try( eval(parse(text = this_task)), silent=TRUE )
 
@@ -93,7 +92,7 @@ eval_command <- function(command, interact, .data) {
         View(res, title=paste("TRY", "OUTPUT"))
       }
 
-      if (inherits(res, "ggplot")) {
+      if (is.ggplot(res)) {
         # Show the plot up to now?
         if (length(res$layers) == 0) {
           p <- res + geom_blank()
@@ -101,8 +100,8 @@ eval_command <- function(command, interact, .data) {
           p <- res
         }
 
-        res <- try(print(p), silent = TRUE)
-        if (inherits(res, "try-error")) {
+        make_plot <- try(print(p), silent = TRUE)
+        if (inherits(make_plot, "try-error")) {
           cat("Error running command:\n    ", deparse(command), "\n")
           cat("Why? ", gsub("Error :", "", geterrmessage()), "\n")
           stop(paste0("Terminated by ", command[[1]]), call. = FALSE)
@@ -142,13 +141,22 @@ WAYPOINT <-
       name <- "Unnamed waypoint"
     }
     if (interact) {
-      response <- readline(
-      paste0("Stopped at ", name,
-             "\n You can see the input to the last step\n",
-             "  and the output from it in the editor tabs:\n",
-             "  TRY INPUT and TRY OUTPUT.\n\n",
-             "Press 'Enter' to continue, Q to quit. ===>\n\n\n")
-      )
+      if (is.ggplot(.data)) {
+        print(.data)
+        message <-
+          paste0("Stopped at waypoint ", name, ".\n  Plot being displayed\n",
+                 "Press 'Enter' to continue, Q to quit. ===>\n\n\n")
+      }
+      else {
+        message <-
+          paste0("Stopped at waypoint ", name,
+                 "\n You can see the input to the last step\n",
+                 "  and the output from it in the editor tabs:\n",
+                 "  TRY INPUT and TRY OUTPUT.\n\n",
+                 "Press 'Enter' to continue, Q to quit. ===>\n\n\n")
+      }
+      response <- readline(message)
+
       if( grepl("Q|q", response))
         stop(paste0("Quiting from waypoint: ", name, .call = FALSE))
     }
@@ -392,7 +400,7 @@ check_ggplot <- function(command, command_str, .data, interact) {
 # list of commonly used aesthetics
 plausible_aesthetics <-
   c("x", "y", "color", "colour", "shape", "size", "group",
-    "alpha", "linetype", "lower", "middle", "upper",
+    "alpha", "fill", "linetype", "lower", "middle", "upper",
     "ymax", "ymin", "linetype", "weight")
 #============================
 check_aes_form <- function(command, command_str, .data) {
@@ -471,7 +479,8 @@ check_layer <- function(command, command_str, .data, interact) {
   arg_names <- argument_names(command)
   data_subcommand <- which("data" == arg_names) # the index - 1
   if (length(data_subcommand) == 0 ) {
-    if (inherits(.data, "ggplot")) {
+    if (inherits(.data, "ggplot") || # two ways to identify ggplot obj.
+        all(c("data", "panel", "plot") %in% names(.data)) ) {
       whatever_the_data_is <- .data$data # get from ggplot
     }
   } else {
@@ -502,10 +511,10 @@ check_layer <- function(command, command_str, .data, interact) {
   P <- c(P, bad)
 
   # Are the aesthetic names right?
-  browser()
   the_aesthetics <- arg_names[other_named]
+
   bad <- the_aesthetics[ ! the_aesthetics %in% plausible_aesthetics]
-  if ( ! is.null(bad)) {
+  if (length(bad) > 0) {
     message <- paste0("Are you sure these are aesthetics? ",
                       bad,
                       collapse = ",")
@@ -534,8 +543,14 @@ check_arguments <-
            "full_join" = check_join,
            "mutate"    = check_mutate,
            "transform" = check_mutate,
-           "ggplot"    = check_ggplot,
+           "ggplot"    = check_ggplot, # should it be check_layer???
            "geom_point"= check_layer,
+           "geom_line" = check_layer,
+           "geom_path" = check_layer,
+           "geom_density" = check_layer,
+           "geom_bar"  = check_layer,
+           "geom_boxplot" = check_layer,
+           "geom_histogram" = check_layer,
 
            NULL
            )
