@@ -23,7 +23,7 @@
 #' }
 #' @export
 scatterGraphHelper <- function(dat) {
-  if(!require(manipulate)) error("Must install 'manipulate' package in RStudio.")
+  if(!require(manipulate)) stop("Must install 'manipulate' package in RStudio.")
   df = substitute(dat)
   nm = varsByType(head(dat))
   # nm$q is the quantitative variables.
@@ -58,7 +58,7 @@ distributionGraphHelper <- function (data, format = "histogram",default=format,
 #' @rdname graphicsHelpers
 #' @export
 barGraphHelper <- function(dat) {
-  if(!require(manipulate)) error("Must install 'manipulate' package in RStudio.")
+  if(!require(manipulate)) stop("Must install 'manipulate' package in RStudio.")
   df = substitute(dat)
   nm = varsByType(head(dat))
   numberNames <- NAprepend(nm$q)
