@@ -87,6 +87,13 @@ barGraphHelper <- function(dat) {
 }
 #' @rdname graphicsHelpers
 #' @export
+densityGraphHelper <- function(...) {
+  .Deprecated(new="distributionGraphHelper")
+  distributionGraphHelper(...)
+}
+
+#' @rdname graphicsHelpers
+#' @export
 USMap <-  function(data=NULL, key=NULL, fill=NULL, ...) {
   dataName <- as.character(substitute(data))
   key <- as.character(substitute(key))

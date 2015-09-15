@@ -5,6 +5,7 @@
 \alias{USMap}
 \alias{WorldMap}
 \alias{barGraphHelper}
+\alias{densityGraphHelper}
 \alias{distributionGraphHelper}
 \alias{scatterGraphHelper}
 \title{Interactive interface to ggplot2}
@@ -15,6 +16,8 @@ distributionGraphHelper(data, format = "histogram", default = format,
   system = "ggplot2", show = FALSE, title = "", ...)
 
 barGraphHelper(dat)
+
+densityGraphHelper(...)
 
 USMap(data = NULL, key = NULL, fill = NULL, ...)
 
