@@ -1,12 +1,25 @@
 Package: DataComputing
 Type: Package
 Title: Package with data and examples for the Data Computing book
-Version: 0.8.2
+Version: 0.8.3
 Date: 2015-07-31
 Author: Daniel Kaplan
 Maintainer: Daniel Kaplan <kaplan@macalester.edu>
-Description: Contains data and support software for the Data Computing book.  Automatically loads other essential packages for the book.
-Depends: R (>= 3.1), ggplot2, dplyr, lubridate, tidyr, stringr, knitr, mosaic, manipulate, base64enc
+Description: Contains data and support software for the Data Computing book.
+    Automatically loads other essential packages for the book.
+Depends:
+    R (>= 3.1),
+    ggplot2,
+    dplyr,
+    lubridate,
+    tidyr,
+    stringr,
+    knitr,
+    mosaic,
+    manipulate,
+    base64enc,
+    curl
 Uses: igraph, shiny, rmarkdown, stringdist
 License: GPL-3
 LazyData: TRUE
+RoxygenNote: 5.0.1
