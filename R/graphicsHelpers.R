@@ -63,8 +63,8 @@ barGraphHelper <- function(dat) {
   nm = varsByType(head(dat))
   numberNames <- NAprepend(nm$q)
   factorNames <- NAprepend(nm$c)
-  alignNames <- list(dodge="position_dodge",stack="position_stack",
-                     proportion="position_fill")
+  alignNames <- list(dodge="dodge",stack="stack",
+                     proportion="fill")
   fillColorNames <- list( default=NA, seq="seq",div="div",qual="qual")
   paletteNames <- list(default=1,two=2,three=3,four=4,five=5,six=6,seven=7,eight=8)
   manipulate({p<-doBar(show,df,x=x,y=y,position=position,
@@ -204,7 +204,7 @@ barString <- function(s){
     paste(",order=reorder(",s$fill,",",s$ordery,")",sep="")
   aesStr <- paste("aes(x=",xStr,",y=",s$y, orderStr,fillStr,sep="")
   res <- paste("ggplot(data=",s$dat,",",aesStr,")",sep="")
-  res<-paste(res,"+geom_bar(stat='identity',position=",s$position,"(width=.9))", sep="")
+  res<-paste(res,"+geom_bar(stat='identity',position='",s$position,"', width=.9)", sep="")
   if( !is.null(s$colors) && !is.na(s$colors))
     res <- paste(res,"+scale_fill_brewer(type='",s$colors,"',palette=",s$palette,")",sep="")
   if (s$sideways)
