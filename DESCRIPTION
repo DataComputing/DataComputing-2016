@@ -17,9 +17,8 @@ Depends:
     knitr,
     mosaic,
     manipulate,
-    base64enc,
-    curl
-Uses: igraph, shiny, rmarkdown, stringdist
+    base64enc
+Uses: igraph, shiny, rmarkdown, stringdist, curl
 License: GPL-3
 LazyData: TRUE
 RoxygenNote: 5.0.1
